@@ -6,56 +6,62 @@
   <title>Grandpa Music</title>
 
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding-top: 60px;
-      background: #f4f4f4;
-    }
-
-    h1 {
-      font-size: 36px;
-      margin-bottom: 10px;
-    }
-
-    .track {
-      font-size: 22px;
-      margin-bottom: 30px;
-      color: #444;
-    }
-
-    button {
-      font-size: 28px;
-      padding: 20px 40px;
-      cursor: pointer;
-    }
-
-    /* Hide video visually (audio-style mode) */
-    #player {
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-    }
+    body { font-family: Arial, sans-serif; text-align: center; padding: 50px 16px; background: #f4f4f4; }
+    h1 { font-size: 40px; margin: 0 0 10px; }
+    #title { font-size: 24px; margin: 10px 0 20px; color: #333; }
+    #counter { font-size: 18px; margin: 0 0 30px; color: #666; }
+    button { font-size: 28px; padding: 18px 26px; margin: 6px; cursor: pointer; }
+    #player { width: 1px; height: 1px; overflow: hidden; } /* “audio-only feel” */
   </style>
 </head>
+
 <body>
+  <h1>Music</h1>
+  <div id="title">Loading…</div>
+  <div id="counter"></div>
 
-  <h1>Music Player</h1>
-  <div class="track">Now Playing:<br><strong>Track Name Here</strong></div>
-
-  <button onclick="togglePlay()">Play / Pause</button>
+  <div>
+    <button onclick="prev()">⏮ Prev</button>
+    <button onclick="togglePlay()">▶️ / ⏸</button>
+    <button onclick="next()">⏭ Next</button>
+  </div>
 
   <div id="player"></div>
 
   <script src="https://www.youtube.com/iframe_api"></script>
-
   <script>
+    // ✅ EDIT THIS LIST ONLY (order here = play order)
+    const tracks = [
+      { id: "5dnktss4Vow", title: "Track 1 (replace with real title)" },
+      { id: "pE1QYlATnGo", title: "Track 2 (replace with real title)" },
+      // { id: "VIDEO_ID_HERE", title: "Another Track Name" },
+    ];
+
+    let index = 0;
     let player;
     let isPlaying = false;
 
+    const titleEl = document.getElementById("title");
+    const counterEl = document.getElementById("counter");
+
+    function renderNowPlaying() {
+      const t = tracks[index];
+      titleEl.innerHTML = `Now Playing:<br><strong>${escapeHtml(t.title)}</strong>`;
+      counterEl.textContent = `Track ${index + 1} of ${tracks.length}`;
+      document.title = `Music - ${t.title}`;
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, m => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+      }[m]));
+    }
+
     function onYouTubeIframeAPIReady() {
+      renderNowPlaying();
+
       player = new YT.Player("player", {
-        videoId: "5dnktss4Vow",
+        videoId: tracks[index].id,
         playerVars: {
           autoplay: 1,
           controls: 0,
@@ -63,23 +69,36 @@
           rel: 0
         },
         events: {
-          onReady: function(event) {
-            event.target.playVideo();
-            isPlaying = true;
-          },
-          onStateChange: function(event) {
-            // Loop when finished
-            if (event.data === YT.PlayerState.ENDED) {
-              player.playVideo();
+          onReady: () => { player.playVideo(); isPlaying = true; },
+          onStateChange: (e) => {
+            if (e.data === YT.PlayerState.ENDED) {
+              next(); // auto-advance
             }
           }
         }
       });
     }
 
+    function loadCurrent(autoplay = true) {
+      if (!player) return;
+      renderNowPlaying();
+      player.loadVideoById(tracks[index].id);
+      if (!autoplay) player.pauseVideo();
+      isPlaying = autoplay;
+    }
+
+    function next() {
+      index = (index + 1) % tracks.length;
+      loadCurrent(true);
+    }
+
+    function prev() {
+      index = (index - 1 + tracks.length) % tracks.length;
+      loadCurrent(true);
+    }
+
     function togglePlay() {
       if (!player) return;
-
       if (isPlaying) {
         player.pauseVideo();
         isPlaying = false;
@@ -89,6 +108,5 @@
       }
     }
   </script>
-
 </body>
 </html>
